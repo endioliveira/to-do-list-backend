@@ -1,8 +1,7 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { db } from './database/knex'
-import { TUserDB } from './types'
-
+import {  TUserDB, TTaskDB } from './types'
 
 const app = express()
 
@@ -198,3 +197,4 @@ app.get("/tasks", async (req: Request, res: Response) => {
         }
     }
 })
+
