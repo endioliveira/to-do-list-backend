@@ -198,3 +198,160 @@ app.get("/tasks", async (req: Request, res: Response) => {
     }
 })
 
+app.post("/tasks", async (req: Request, res: Response) => {
+    try {
+        const { id, title, description } = req.body
+
+        if (typeof id !== "string") {
+            res.status(400)
+            throw new Error("'id' deve ser string")
+        }
+
+        if (id.length < 4) {
+            res.status(400)
+            throw new Error("'id' deve possuir pelo menos 4 caracteres")
+        }
+
+        if (typeof title !== "string") {
+            res.status(400)
+            throw new Error("'title' deve ser string")
+        }
+
+        if (title.length < 2) {
+            res.status(400)
+            throw new Error("'title' deve possuir pelo menos 2 caracteres")
+        }
+
+        if (typeof description !== "string") {
+            res.status(400)
+            throw new Error("'description' deve ser string")
+        }
+
+        const [ taskIdAlreadyExists ]: TTaskDB[] | undefined[] = await db("tasks").where({ id })
+
+        if (taskIdAlreadyExists) {
+            res.status(400)
+            throw new Error("'id' já existe")
+        }
+
+        const newTask = {
+            id,
+            title,
+            description
+        }
+
+        await db("tasks").insert(newTask)
+
+        const [ insertedTask ]: TTaskDB[] = await db("tasks").where({ id })
+
+        res.status(201).send({
+            message: "Task criada com sucesso",
+            task: insertedTask
+        })
+
+    } catch (error) {
+        console.log(error)
+
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+    }
+})
+
+app.put("/tasks/:id", async (req: Request, res: Response) => {
+    try {
+        const idToEdit = req.params.id
+
+        const newId = req.body.id
+        const newTitle = req.body.title
+        const newDescription = req.body.description
+        const newCreatedAt = req.body.createdAt
+        const newStatus = req.body.status
+
+        if (newId !== undefined) {
+            if (typeof newId !== "string") {
+                res.status(400)
+                throw new Error("'id' deve ser string")
+            }
+    
+            if (newId.length < 4) {
+                res.status(400)
+                throw new Error("'id' deve possuir pelo menos 4 caracteres")
+            }
+        }
+
+        if (newTitle !== undefined) {
+            if (typeof newTitle !== "string") {
+                res.status(400)
+                throw new Error("'title' deve ser string")
+            }
+    
+            if (newTitle.length < 2) {
+                res.status(400)
+                throw new Error("'title' deve possuir pelo menos 2 caracteres")
+            }
+        }
+
+        if (newDescription !== undefined) {
+            if (typeof newDescription !== "string") {
+                res.status(400)
+                throw new Error("'description' deve ser string")
+            }
+        }
+
+        if (newCreatedAt !== undefined) {
+            if (typeof newCreatedAt !== "string") {
+                res.status(400)
+                throw new Error("'createdAt' deve ser string")
+            }
+        }
+
+        if (newStatus !== undefined) {
+            if (typeof newStatus !== "number") {
+                res.status(400)
+                throw new Error("'status' deve ser number (0 para incompleta ou 1 para completa)")
+            }
+        }
+
+        const [ task ]: TTaskDB[] | undefined[] = await db("tasks").where({ id: idToEdit })
+
+        if (!task) {
+            res.status(404)
+            throw new Error("'id' não encontrada")
+        }
+
+        const newTask: TTaskDB = {
+            id: newId || task.id,
+            title: newTitle || task.title,
+            description: newDescription || task.description,
+            created_at: newCreatedAt || task.created_at,
+            status: isNaN(newStatus) ? task.status : newStatus // se o isNaN(newStatus) for inválido, ele retorna true e se ele for true, significa que o status é inválido e mantém o original, se nao a gente mantem o newStatus
+        }
+
+        await db("tasks").update(newTask).where({ id: idToEdit })
+
+        res.status(200).send({
+            message: "Task editada com sucesso",
+            task: newTask
+        })
+
+    } catch (error) {
+        console.log(error)
+
+        if (req.statusCode === 200) {
+            res.status(500)
+        }
+
+        if (error instanceof Error) {
+            res.send(error.message)
+        } else {
+            res.send("Erro inesperado")
+        }
+    }
+})
